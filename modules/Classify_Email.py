@@ -11,8 +11,8 @@ def classify_email(file_path,model,threshold,common_words,word_to_index):
     # Extract email subject and body
     subject, body = parse_eml_file(file_path)
 
-    print("Subject: ",subject)
-    print("Body: ",body)
+    # print("Subject: ",subject)
+    # print("Body: ",body)
     
     if not (subject or body):
         return "Unable to process email content."

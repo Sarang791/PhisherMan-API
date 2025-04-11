@@ -28,8 +28,8 @@ logger = logging.getLogger(__name__)
 app = FastAPI()
 
 # Environment variables
-COMMON_WORDS_PATH = os.getenv("COMMON_WORDS_PATH", "C:/Users/saran/Downloads/PhisserMan1Api/PhisserMan1Api/common_words.pkl")
-MODEL_PATH = os.getenv("MODEL_PATH", "C:/Users/saran/Downloads/PhisserMan1Api/PhisserMan1Api/model_with_metadata.joblib")
+COMMON_WORDS_PATH = os.getenv("COMMON_WORDS_PATH", "common_words.pkl")
+MODEL_PATH = os.getenv("MODEL_PATH", "model_with_metadata.joblib")
 
 # Load model at startup with caching
 @lru_cache(maxsize=1)

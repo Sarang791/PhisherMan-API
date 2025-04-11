@@ -1,4 +1,3 @@
-
 from nltk.tokenize import word_tokenize
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 from modules.Email_Cleaning import clean_email_content

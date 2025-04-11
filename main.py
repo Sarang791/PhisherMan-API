@@ -5,7 +5,6 @@ import joblib
 import pickle
 import logging
 import os
-import dns.resolver
 from email import message_from_bytes
 from functools import lru_cache
 from dotenv import load_dotenv

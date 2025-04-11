@@ -30,7 +30,7 @@
 import pandas as pd
 
 
-file_path = "D:\PhisserMan1Api\Phisherman_Decision_Table.xlsx"
+file_path = "Phisherman_Decision_Table.xlsx"
 decision_table = pd.read_excel(file_path)
 
 # Create a hash-based dictionary for O(1) lookup

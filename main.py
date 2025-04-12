@@ -8,9 +8,10 @@ import os
 from email import message_from_bytes
 from functools import lru_cache
 from dotenv import load_dotenv
+from tensorflow.keras.models import load_model as keras_load_model
 
 
-# Local modules
+# Local modulesz
 from modules import CertificateValidation as certval
 from modules import DomainAndURL as DU
 from modules import Email_Authentication as EA
@@ -28,10 +29,10 @@ logger = logging.getLogger(__name__)
 app = FastAPI()
 
 # Environment variables
-import os
+COMMON_WORDS_PATH = os.getenv("COMMON_WORDS_PATH", "common_words.pkl")
+MODEL_PATH = os.getenv("MODEL_PATH1", "model_for_deployment.keras")
+METADATA_PATH = os.getenv("METADATA_PATH1", "model_with_metadata_for_deployment.joblib")
 
-COMMON_WORDS_PATH = os.getenv("COMMON_WORDS_PATH", os.path.join(os.getcwd(), "common_words.pkl"))
-MODEL_PATH = os.getenv("MODEL_PATH", os.path.join(os.getcwd(), "model_with_metadata.joblib"))
 
 
 # Load model at startup with caching
@@ -44,11 +45,13 @@ def load_model() -> tuple:
         logger.info("Loading model and metadata...")
         with open(COMMON_WORDS_PATH, 'rb') as f:
             common_words = pickle.load(f)
-        
-        print(MODEL_PATH)
-        model_with_metadata = joblib.load(MODEL_PATH)
+
+        print("hello")
+        model = keras_load_model(MODEL_PATH)
+        model_with_metadata = joblib.load(METADATA_PATH)
         logger.info("Model and metadata loaded successfully.")
-        return model_with_metadata["model"], model_with_metadata["threshold"], common_words, model_with_metadata["word_to_index"]
+        
+        return model, model_with_metadata["threshold"], common_words, model_with_metadata["word_to_index"]
     
     except FileNotFoundError as e:
         logger.error(f"File not found: {e}")

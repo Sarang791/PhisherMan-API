@@ -9,7 +9,7 @@ from email import message_from_bytes
 from functools import lru_cache
 from dotenv import load_dotenv
 from tensorflow.keras.models import load_model as keras_load_model
-
+import nltk
 
 # Local modulesz
 from modules import CertificateValidation as certval
@@ -33,7 +33,7 @@ COMMON_WORDS_PATH = os.getenv("COMMON_WORDS_PATH", "common_words.pkl")
 MODEL_PATH = os.getenv("MODEL_PATH1", "model_for_deployment.keras")
 METADATA_PATH = os.getenv("METADATA_PATH1", "model_with_metadata_for_deployment.joblib")
 
-
+nltk.download('punkt_tab')
 
 # Load model at startup with caching
 @lru_cache(maxsize=1)

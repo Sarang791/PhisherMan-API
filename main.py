@@ -10,6 +10,9 @@ from functools import lru_cache
 from dotenv import load_dotenv
 from tensorflow.keras.models import load_model as keras_load_model
 import nltk
+from fastapi.middleware.cors import CORSMiddleware
+
+
 
 # Local modulesz
 from modules import CertificateValidation as certval
@@ -27,6 +30,14 @@ logger = logging.getLogger(__name__)
 
 # FastAPI app instance
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Change to specific domains in prod
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Environment variables
 COMMON_WORDS_PATH = os.getenv("COMMON_WORDS_PATH", "common_words.pkl")

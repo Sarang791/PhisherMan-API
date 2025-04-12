@@ -9,6 +9,7 @@ from email import message_from_bytes
 from functools import lru_cache
 from dotenv import load_dotenv
 
+
 # Local modules
 from modules import CertificateValidation as certval
 from modules import DomainAndURL as DU
@@ -27,8 +28,11 @@ logger = logging.getLogger(__name__)
 app = FastAPI()
 
 # Environment variables
-COMMON_WORDS_PATH = os.getenv("COMMON_WORDS_PATH", "common_words.pkl")
-MODEL_PATH = os.getenv("MODEL_PATH", "model_with_metadata.joblib")
+import os
+
+COMMON_WORDS_PATH = os.getenv("COMMON_WORDS_PATH", os.path.join(os.getcwd(), "common_words.pkl"))
+MODEL_PATH = os.getenv("MODEL_PATH", os.path.join(os.getcwd(), "model_with_metadata.joblib"))
+
 
 # Load model at startup with caching
 @lru_cache(maxsize=1)
@@ -40,7 +44,8 @@ def load_model() -> tuple:
         logger.info("Loading model and metadata...")
         with open(COMMON_WORDS_PATH, 'rb') as f:
             common_words = pickle.load(f)
-
+        
+        print(MODEL_PATH)
         model_with_metadata = joblib.load(MODEL_PATH)
         logger.info("Model and metadata loaded successfully.")
         return model_with_metadata["model"], model_with_metadata["threshold"], common_words, model_with_metadata["word_to_index"]

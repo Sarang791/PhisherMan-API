@@ -1,8 +1,5 @@
-import imaplib
 import email
-import dkim
 import dns.resolver
-import hashlib
 import re
 from email.policy import default
 from modules import Extract_Sender_Domain as ESD

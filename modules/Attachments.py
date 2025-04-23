@@ -1,7 +1,6 @@
 import os
 import time
 import requests
-import imaplib
 from email import policy
 from email.parser import BytesParser
 

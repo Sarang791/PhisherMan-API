@@ -5,12 +5,16 @@ import joblib
 import pickle
 import logging
 import os
-import dns.resolver
 from email import message_from_bytes
 from functools import lru_cache
 from dotenv import load_dotenv
+from tensorflow.keras.models import load_model as keras_load_model
+import nltk
+from fastapi.middleware.cors import CORSMiddleware
 
-# Local modules
+
+
+# Local modulesz
 from modules import CertificateValidation as certval
 from modules import DomainAndURL as DU
 from modules import Email_Authentication as EA
@@ -27,9 +31,20 @@ logger = logging.getLogger(__name__)
 # FastAPI app instance
 app = FastAPI()
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Change to specific domains in prod
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 # Environment variables
-COMMON_WORDS_PATH = os.getenv("COMMON_WORDS_PATH", "C:/Users/saran/Downloads/PhisserMan1Api/PhisserMan1Api/common_words.pkl")
-MODEL_PATH = os.getenv("MODEL_PATH", "C:/Users/saran/Downloads/PhisserMan1Api/PhisserMan1Api/model_with_metadata.joblib")
+COMMON_WORDS_PATH = os.getenv("COMMON_WORDS_PATH", "common_words.pkl")
+MODEL_PATH = os.getenv("MODEL_PATH1", "model_for_deployment.keras")
+METADATA_PATH = os.getenv("METADATA_PATH1", "model_with_metadata_for_deployment.joblib")
+
+nltk.download('punkt_tab')
 
 # Load model at startup with caching
 @lru_cache(maxsize=1)
@@ -42,9 +57,12 @@ def load_model() -> tuple:
         with open(COMMON_WORDS_PATH, 'rb') as f:
             common_words = pickle.load(f)
 
-        model_with_metadata = joblib.load(MODEL_PATH)
+        print("hello")
+        model = keras_load_model(MODEL_PATH)
+        model_with_metadata = joblib.load(METADATA_PATH)
         logger.info("Model and metadata loaded successfully.")
-        return model_with_metadata["model"], model_with_metadata["threshold"], common_words, model_with_metadata["word_to_index"]
+        
+        return model, model_with_metadata["threshold"], common_words, model_with_metadata["word_to_index"]
     
     except FileNotFoundError as e:
         logger.error(f"File not found: {e}")

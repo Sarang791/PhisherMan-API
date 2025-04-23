@@ -1,5 +1,3 @@
-import imaplib
-import email
 import dns.resolver
 import requests
 import re
@@ -7,7 +5,6 @@ import base64
 from bs4 import BeautifulSoup
 from email import policy
 from email.parser import BytesParser
-import time
 from modules import Extract_Sender_Domain as ESD
 
 # 🔹 VirusTotal API Key

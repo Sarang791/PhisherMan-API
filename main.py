@@ -1,3 +1,4 @@
+from email.parser import BytesParser
 from fastapi import FastAPI, HTTPException, Depends
 from pydantic import BaseModel
 import base64
@@ -5,7 +6,7 @@ import joblib
 import pickle
 import logging
 import os
-from email import message_from_bytes
+from email import message_from_bytes, policy
 from functools import lru_cache
 from dotenv import load_dotenv
 from tensorflow.keras.models import load_model as keras_load_model
@@ -20,6 +21,7 @@ from modules import DomainAndURL as DU
 from modules import Email_Authentication as EA
 from modules import Classify_Email as CE
 from modules import Final_Classification as FC
+from modules import Attachments as AT
 
 # Load environment variables from .env file
 load_dotenv()
@@ -88,6 +90,39 @@ def is_valid_base64(s: str) -> bool:
         return True
     except Exception:
         return False
+    
+def extract_attachments(raw_email):
+    msg = BytesParser(policy=policy.default).parsebytes(raw_email)
+    attachments = []
+
+    for part in msg.iter_attachments():
+        filename = part.get_filename()
+        if filename:
+            file_bytes = part.get_payload(decode=True)
+            attachments.append((filename, file_bytes))
+    if attachments == []:
+        return False
+    else:
+        return True
+    
+@app.post("/api/scan-attachments")
+async def scan_attachment(payload: EmailPayload):
+    raw_email = base64.urlsafe_b64decode(payload.raw)
+    results = AT.analyze_email(raw_email)
+    print("\n📌 Email Analysis Report\n")
+
+    # Display all attachments with their status
+    print("\n🔹 Attachments:")
+    for filename, status in results["Attachments"].items():
+        print(f"   - {filename}: {status}")
+
+    attachment_result = results['Attachment Classification']
+    attachment_reason = results['Attachment Reason']
+
+    print(f"\n🔹 Overall Attachment Classification: {attachment_result}")
+    print(f"{attachment_reason}")
+    return {"result":attachment_result,"reason":attachment_reason}
+
 
 @app.post("/api/process-email")
 async def process_email(payload: EmailPayload, model_data=Depends(load_model)):
@@ -98,7 +133,10 @@ async def process_email(payload: EmailPayload, model_data=Depends(load_model)):
         logger.info("Processing email...")
         raw_email = base64.urlsafe_b64decode(payload.raw)
         extracted_email = message_from_bytes(raw_email)
+        
+        attachment_check=extract_attachments(raw_email)
 
+        print("attachment_check",attachment_check)
         # Certificate Validation
         cert_validation_result = certval.analyze_email_certificate(raw_email)
             
@@ -183,6 +221,7 @@ async def process_email(payload: EmailPayload, model_data=Depends(load_model)):
         return {
             "final_decision": final_decision,
             "final_reason": reason,
+            "attachment_check": attachment_check,
             
         }
     except HTTPException:

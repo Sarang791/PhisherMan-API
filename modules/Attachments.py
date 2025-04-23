@@ -1,61 +1,55 @@
 import os
 import time
 import requests
+import imaplib
 from email import policy
 from email.parser import BytesParser
 
-
-# 🔹 VirusTotal API Key
 VIRUSTOTAL_API_KEY = "0bee3a39ad009e41691a3fbadac75808525a07b7abc73d6c58ba5ecf9e90c82c"
 
 # ==========================================
 # 🔹 EXTRACT & SCAN ATTACHMENTS
 # ==========================================
-def extract_attachments(raw_email, save_dir="attachments"):
-    """Extracts and saves all attachments from the email."""
+def extract_attachments(raw_email):
+    """
+    Extracts attachments from the email without saving them.
+
+    Returns:
+    - attachments (list): List of tuples (filename, file_bytes)
+    """
     msg = BytesParser(policy=policy.default).parsebytes(raw_email)
     attachments = []
-
-    if not os.path.exists(save_dir):
-        os.makedirs(save_dir)
 
     for part in msg.iter_attachments():
         filename = part.get_filename()
         if filename:
-            filepath = os.path.join(save_dir, filename)
-            with open(filepath, "wb") as f:
-                f.write(part.get_payload(decode=True))
-            attachments.append(filepath)
-
-            print(f"📎 Attachment saved: {filename}")
+            file_bytes = part.get_payload(decode=True)
+            attachments.append((filename, file_bytes))
 
     return attachments
 
 def classify_attachment(scan_results):
     """Classifies an attachment as Safe, Suspicious, or Malicious."""
     if scan_results.get("malicious", 0) > 0:
-        return "🛑 Malicious"
+        return "Malicious"
     elif scan_results.get("suspicious", 0) > 0:
-        return "⚠️ Suspicious"
+        return "Suspicious"
     else:
-        return "✅ Safe"
+        return "Safe"
 
-def scan_attachment_virustotal(file_path):
-    """Uploads an attachment to VirusTotal and waits for results."""
-    print("scanning attachment............")
+def scan_attachment_virustotal(filename, file_bytes):
+    """Uploads an attachment (as bytes) to VirusTotal and waits for results."""
     url = "https://www.virustotal.com/api/v3/files"
     headers = {"x-apikey": VIRUSTOTAL_API_KEY}
 
-    with open(file_path, "rb") as file:
-        files = {"file": (os.path.basename(file_path), file)}
-        response = requests.post(url, headers=headers, files=files)
+    files = {"file": (filename, file_bytes)}
+    response = requests.post(url, headers=headers, files=files)
 
     if response.status_code == 200:
         scan_id = response.json()["data"]["id"]
-        print("Scan ID : ",scan_id)
         return check_virustotal_scan(scan_id)
     else:
-        return {"error": f"❌ Failed to upload {os.path.basename(file_path)} to VirusTotal."}
+        return {"error": f"❌ Failed to upload {filename} to VirusTotal."}
 
 def check_virustotal_scan(scan_id):
     """Waits for VirusTotal scan to complete and retrieves results."""
@@ -77,31 +71,60 @@ def check_virustotal_scan(scan_id):
             return {"error": "❌ Failed to retrieve scan results."}
 
 # ==========================================
+# 🔹 CLASSIFY ATTACHMENTS
+# ==========================================
+def classify_attachments(attachment_results):
+    """
+    Classifies attachments based on VirusTotal results.
+
+    Returns:
+    - result (str): Final classification ('✅ Safe', '⚠️ Suspicious', '🛑 Malicious')
+    - reason (str): Detailed reason for classification with attachment names.
+    """
+    malicious_attachments = []
+    suspicious_attachments = []
+
+    for filename, status in attachment_results.items():
+        if status == "Malicious":
+            malicious_attachments.append(filename)
+        elif status == "Suspicious":
+            suspicious_attachments.append(filename)
+
+    if malicious_attachments:
+        reason = "Malicious attachments found:\n" + "\n".join(f" - {name}" for name in malicious_attachments)
+        return "Malicious", reason.strip()
+
+    if suspicious_attachments:
+        reason = "Suspicious attachments found:\n" + "\n".join(f" - {name}" for name in suspicious_attachments)
+        return "Suspicious", reason.strip()
+
+    return "Safe", "All attachments are safe."
+
+# ==========================================
 # 🔹 MAIN FUNCTION
 # ==========================================
 def analyze_email(raw_email):
-    print("\n🔍 Analyzing email attachment...")
-    if not raw_email:
-        return {"Fetch Status": "❌ No email content found."}
 
     # 🔸 Extract and scan attachments
     attachments = extract_attachments(raw_email)
     attachment_results = {}
-
-    if attachments:
-        print("🔎 Scanning attachments using VirusTotal...")
-        for attachment in attachments:
-            result = scan_attachment_virustotal(attachment)
-            if "error" in result:
-                attachment_results[os.path.basename(attachment)] = "❌ Failed to analyze"
-            else:
-                classification = classify_attachment(result)
-                attachment_results[os.path.basename(attachment)] = classification
-    else:
-        attachment_results = {"No Attachments": "✅ No attachments found."}
+    print("🔎 Scanning attachments using VirusTotal...")
+    for filename, file_bytes in attachments:
+        result = scan_attachment_virustotal(filename, file_bytes)
+        if "error" in result:
+            attachment_results[filename] = "❌ Failed to analyze"
+        else:
+            classification = classify_attachment(result)
+            attachment_results[filename] = classification
+    # 🔸 Classify attachments using the combined result
+    attachment_classification, attachment_reason = classify_attachments(attachment_results)
 
     return {
-        "Fetch Status": "✅ Email content analyzed.",
+        "Attachment Classification": attachment_classification,
+        "Attachment Reason": attachment_reason,
         "Attachments": attachment_results
     }
 
+# ==========================================
+# 🔹 EXECUTE SCRIPT
+# ==========================================
